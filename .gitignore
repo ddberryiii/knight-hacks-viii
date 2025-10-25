@@ -1,0 +1,15 @@
+.env
+.env.local
+.env.*.local
+.env.production
+
+node_modules/
+*/node_modules/
+
+*.tmp
+*.temp
+.cache/
+tmp/
+temp/
+
+.idea/
