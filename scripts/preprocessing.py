@@ -4,7 +4,7 @@ import re
 import pickle
 
 # Load raw data from pickle into a dataframe
-df = pd.read_pickle('../data/raw_data.pkl')
+df = pd.read_pickle('../anime_recommender/backend/data/raw_data.pkl')
 
 # Remove useless columns: anime_url, image_url, scored_by, favorites, rank
 columns_to_drop = [

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <meta charset="UTF-8" />
+    <title>🎥 Anime Recommender</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>🎥 Anime Recommender</h1>
+        <p class="subtitle">Find your next favorite anime and chat with Gemini</p>
+      </header>
+
+      <!-- === Autocomplete & Recommendations === -->
+      <section id="input-section">
+        <div class="autocomplete-container">
+          <input
+            type="text"
+            id="anime-input"
+            placeholder="Start typing an anime name..."
+            autocomplete="off"
+          />
+          <div id="autocomplete-list" class="autocomplete-items"></div>
+        </div>
+        <button id="get-recs">Get Recommendations</button>
+      </section>
+
+      <section id="results"></section>
+
+      <hr />
+
+      <!-- === Gemini Chat Section === -->
+      <section id="chat-section">
+        <h2>💬 Chat with Gemini</h2>
+        <div id="chat-log"></div>
+        <div class="chat-input-area">
+          <textarea id="chat-input" placeholder="Ask about anime..."></textarea>
+          <button id="send-chat">Send</button>
+        </div>
+      </section>
+    </div>
+
+    <script type="module" src="./js/api.js"></script>
+    <script type="module" src="./js/ui.js"></script>
+  </body>
+</html>
