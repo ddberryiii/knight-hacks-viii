@@ -9,6 +9,10 @@ const chatLogEl = document.getElementById("chat-log");
 
 let selectedAnimeId = null;
 let debounceTimeout = null;
+let allRecommendations = [];
+let displayedRecommendations = [];
+let usedRecommendationIds = new Set();
+let removedRecommendationIds = new Set();
 
 // --- Autocomplete feature ---
 inputEl.addEventListener("input", async function () {
@@ -39,7 +43,14 @@ function renderAutocomplete(results) {
   results.forEach((anime) => {
     const div = document.createElement("div");
     div.classList.add("autocomplete-item");
-    div.textContent = anime.name;
+    div.innerHTML = `
+  <div style="display: flex; align-items: center; gap: 10px;">
+    ${anime.image_url
+      ? `<img src="${anime.image_url}" alt="${anime.name}" style="width: 30px; height: 45px; object-fit: cover; border-radius: 4px;">`
+      : `<div style="width: 30px; height: 45px; background: #eee; border-radius: 4px;"></div>`}
+    <span>${anime.name}</span>
+  </div>
+`;
     div.dataset.id = anime.anime_id;
 
     div.addEventListener("click", () => {
@@ -63,20 +74,52 @@ buttonEl.addEventListener("click", async () => {
   const query = inputEl.value.trim();
   if (!query) return alert("Please enter an anime name!");
 
+  // If no anime_id is selected from autocomplete, fetch it first
+  let animeIds = [];
   if (!selectedAnimeId) {
-    const res = await fetch(`http://127.0.0.1:5000/api/search?q=${encodeURIComponent(query)}`);
+    const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(query)}`);
     const results = await res.json();
-    if (results.length) selectedAnimeId = results[0].anime_id;
+    if (results.length) animeIds = [results[0].anime_id];
+  } else {
+    animeIds = [selectedAnimeId];
   }
 
-  if (!selectedAnimeId) {
+  if (!animeIds.length) {
     alert("No anime found matching that name!");
     return;
   }
 
-  const recs = await getRecommendations(query);
-  renderResults(recs);
+  const recs = await getRecommendations(animeIds);
+  allRecommendations = recs;
+  displayedRecommendations = recs.slice(0, 8);
+  renderResults(displayedRecommendations);
 });
+
+
+function removeAnime(index) {
+  const removed = displayedRecommendations[index];
+
+  // Remove from visible array
+  displayedRecommendations.splice(index, 1);
+
+  // Mark it as permanently removed
+  removedRecommendationIds.add(removed.anime_id);
+  usedRecommendationIds.delete(removed.anime_id); // optional cleanup
+
+  // Find a brand-new unseen and unremoved recommendation
+  const nextRec = allRecommendations.find(
+    rec =>
+      !displayedRecommendations.some(d => d.anime_id === rec.anime_id) &&
+      !removedRecommendationIds.has(rec.anime_id)
+  );
+
+  if (nextRec) {
+    displayedRecommendations.push(nextRec);
+    usedRecommendationIds.add(nextRec.anime_id);
+  }
+
+  renderResults(displayedRecommendations);
+}
 
 // --- Render Recommendations ---
 export function renderResults(recommendations) {
@@ -87,18 +130,30 @@ export function renderResults(recommendations) {
   }
 
   resultsDiv.innerHTML = recommendations
-    .map(
-      (r) => `
-        <div class="card">
-          <img src="${r.image_url}" alt="${r.name}" onerror="this.style.display='none';" />
+    .map((r, index) => `
+        <div class="card" data-index="${index}">
+          <a href="${r.anime_url}" target="_blank" rel="noopener noreferrer">
+            <img src="${r.image_url}" alt="${r.name}" onerror="this.style.display='none';" />
+          </a>
           <div class="info">
-            <h3>${r.name}</h3>
-            <a href="${r.anime_url}" target="_blank">View</a>
+            <h3><a href="${r.anime_url}" target="_blank" rel="noopener noreferrer">${r.name}</a></h3>
+            ${r.score ? `<div class="anime-score">⭐ ${r.score}</div>` : ''}
           </div>
+          <button class="remove-btn" data-index="${index}">❌</button>
         </div>`
     )
     .join("");
+
+  // Add click handlers to remove buttons
+  // 🔧 Attach delete handlers after rendering, so CSS layout stays intact
+  document.querySelectorAll(".remove-btn").forEach(btn => {
+    btn.addEventListener("click", e => {
+      const idx = parseInt(e.currentTarget.dataset.index);
+      removeAnime(idx);
+    });
+  });
 }
+
 // --- Gemini Chat with "typing" animation ---
 chatButtonEl.addEventListener("click", async () => {
   const message = chatInputEl.value.trim();

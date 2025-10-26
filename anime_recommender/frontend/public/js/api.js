@@ -3,18 +3,12 @@ const API_BASE = "http://127.0.0.1:5000";
 /**
  * Fetches anime recommendations based on name (via search -> recommend chain)
  */
-export async function getRecommendations(animeName) {
-  const searchRes = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(animeName)}`);
-  const results = await searchRes.json();
-  if (!results.length) return [];
-
-  const firstId = results[0].anime_id;
+export async function getRecommendations(animeIds) {
   const recRes = await fetch(`${API_BASE}/api/recommend`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ anime_ids: [firstId] }),
+    body: JSON.stringify({ anime_ids: animeIds }),
   });
-
   const data = await recRes.json();
   return data.recommendations || [];
 }
