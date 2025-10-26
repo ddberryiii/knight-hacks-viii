@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
-from recommender import AnimeRecommender
+from recommender_knn import AnimeKNNRecommender
 from gemini_client import chat_with_gemini
 import os
 from dotenv import load_dotenv
@@ -10,7 +10,7 @@ load_dotenv()
 app = Flask(__name__, static_folder='../frontend/public', static_url_path='')
 CORS(app)
 
-recommender = AnimeRecommender()
+recommender = AnimeKNNRecommender()
 
 # Serve the frontend
 @app.route("/")
@@ -30,7 +30,8 @@ def search():
 def recommend():
     data = request.get_json()
     anime_ids = data.get("anime_ids", [])
-    results = recommender.recommend(anime_ids)
+    k = int(data.get("k", 10))
+    results = recommender.recommend(anime_ids, k=k)
     return jsonify({"recommendations": results})
 
 @app.route("/api/chat", methods=["POST"])

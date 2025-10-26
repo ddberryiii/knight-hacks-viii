@@ -8,7 +8,7 @@ vertexai
 dotenv
 
 re
-pickle
+pypickle
 pandas
 numpy
 scikit-learn
