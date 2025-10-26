@@ -7,7 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import normalize
 from scipy.sparse import hstack
 
-df = pd.read_parquet("../data/cleaned_data.parquet")
+df = pd.read_parquet("../anime_recommender/backend/data/cleaned_data.parquet")
 
 for col in ['genres', 'themes', 'demographics', 'synopsis', 'studios', 'type', 'rating']:
     df[col] = df[col].astype(str)
