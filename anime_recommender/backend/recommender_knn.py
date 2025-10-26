@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, Dict, Optional
 import numpy as np
 import pandas as pd
+import math
 
 # Direct import since animeknn.py is in the same folder
 import animeknn
@@ -12,6 +13,13 @@ def _build_id_index_map(metadata: pd.DataFrame) -> Dict[int, int]:
     """Create a mapping from anime_id → dataframe index."""
     ids = pd.to_numeric(metadata.get("anime_id"), errors="coerce")
     return {int(aid): idx for idx, aid in ids.dropna().items()}
+
+def clean_json_value(value):
+    if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+        return None
+    if pd.isna(value):
+        return None
+    return value
 
 
 _ID_TO_IDX = _build_id_index_map(animeknn.metadata)
@@ -37,29 +45,52 @@ class AnimeKNNRecommender:
         if not q:
             return []
 
+        q_lower = q.lower()
+
+        # --- We'll search directly in raw_data ---
         cols = [
-            c for c in ["name", "english_name", "japanese_names", "embed_text"]
-            if c in self.metadata.columns
+            c for c in ["english_name", "name"]
+            if c in self.raw_data.columns
         ]
         if not cols:
             return []
 
+        # --- Build mask: look for the query in any name column ---
         mask = False
         for c in cols:
-            mask = mask | self.metadata[c].astype(str).str.contains(q, case=False, na=False)
+            mask = mask | self.raw_data[c].astype(str).str.lower().str.contains(q_lower, na=False)
 
-        hits = self.metadata[mask].head(limit)
-        return [
-            {
-                "anime_id": int(row.get("anime_id")),
-                "name": str(row.get("name") or row.get("english_name") or "Unknown")
-            }
-            for _, row in hits.iterrows()
-        ]
+        hits = self.raw_data[mask].head(limit)
+
+        # --- Helper to sanitize bad strings ---
+        def safe_str(value, fallback="Unknown"):
+            if pd.isna(value) or value is None:
+                return fallback
+            s = str(value).strip()
+            return fallback if not s or s.lower() == "nan" else s
+
+        # --- Build results ---
+        results = []
+        for _, row in hits.iterrows():
+            anime_id = int(row.get("anime_id", -1))
+            if anime_id == -1:
+                continue
+
+            # Prefer English name if available
+            display_name = row.get("english_name") or row.get("name")
+            clean_name = safe_str(display_name)
+
+            results.append({
+                "anime_id": anime_id,
+                "name": clean_name,
+                "image_url": safe_str(row.get("image_url"), None)
+            })
+
+        return results
 
     # ----------------- RECOMMENDATIONS -----------------
 
-    def recommend(self, anime_ids: List[int], k: int = 10, lambda_mult: float = 0.7) -> List[Dict]:
+    def recommend(self, anime_ids: List[int], k: int = 20, lambda_mult: float = 0.7) -> List[Dict]:
         if not anime_ids:
             return []
 
@@ -89,7 +120,7 @@ class AnimeKNNRecommender:
             cand_indices = cand_indices[order]
 
         # 4) Genre diversity
-        cand_indices = animeknn.diversify_by_genre(cand_indices[:k * 2], self.metadata, max_per_genre=3)
+        cand_indices = animeknn.diversify_by_genre(cand_indices[:k * 2], self.metadata, max_per_genre=20)
 
         # 5) Build response objects
         results = []
@@ -116,14 +147,14 @@ class AnimeKNNRecommender:
                 image_url = anime_url = None
 
             results.append({
-                "anime_id": aid,
-                "name": name,
-                "similarity": sim,
-                "score": score,
-                "episodes": episodes,
-                "genres": genres,
-                "image_url": image_url,
-                "anime_url": anime_url,
+                "anime_id": clean_json_value(aid),
+                "name": clean_json_value(name),
+                "similarity": clean_json_value(sim),
+                "score": clean_json_value(score),
+                "episodes": clean_json_value(episodes),
+                "genres": clean_json_value(genres),
+                "image_url": clean_json_value(image_url),
+                "anime_url": clean_json_value(anime_url),
             })
 
         return results

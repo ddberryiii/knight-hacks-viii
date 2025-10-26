@@ -30,7 +30,7 @@ def search():
 def recommend():
     data = request.get_json()
     anime_ids = data.get("anime_ids", [])
-    k = int(data.get("k", 10))
+    k = int(data.get("k", 20))
     results = recommender.recommend(anime_ids, k=k)
     return jsonify({"recommendations": results})
 

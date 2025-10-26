@@ -7,7 +7,6 @@ pyarrow
 vertexai
 dotenv
 
-re
 pypickle
 pandas
 numpy
