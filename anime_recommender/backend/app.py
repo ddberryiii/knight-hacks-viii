@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from recommender import AnimeRecommender
 from gemini_client import chat_with_gemini
@@ -7,10 +7,19 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='../frontend/public', static_url_path='')
 CORS(app)
 
 recommender = AnimeRecommender()
+
+# Serve the frontend
+@app.route("/")
+def index():
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.route("/<path:path>")
+def serve_static(path):
+    return send_from_directory(app.static_folder, path)
 
 @app.route("/api/search", methods=["GET"])
 def search():
