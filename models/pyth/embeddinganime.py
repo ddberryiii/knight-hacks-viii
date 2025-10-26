@@ -7,15 +7,15 @@ Original file is located at
     https://colab.research.google.com/drive/1owKJUzEFkMxYRDeRcxlJjm7tiJ--6PO2
 """
 
-!pip install -q google-genai pyarrow
+#!pip install -q google-genai pyarrow
 
-from google.colab import auth
+#from google.colab import auth
 auth.authenticate_user()  # OAuth in Colab
 
 PROJECT_ID = "620323772193"   # <- set this
 LOCATION  = "us-central1"            # recommended
 
-import vertexai
+#import vertexai
 vertexai.init(project=PROJECT_ID, location=LOCATION)
 
 from vertexai.language_models import TextEmbeddingModel
